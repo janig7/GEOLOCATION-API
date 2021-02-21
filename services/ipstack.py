@@ -1,7 +1,14 @@
 import requests
+import os
+import dotenv
 
-API_KEY = '5b8366e7f82af928b485195343356446'
-IP_STACK_URL = 'http://api.ipstack.com/'
+from core.settings import BASE_DIR
+
+dotenv_file = os.path.join(BASE_DIR, '.env')
+if os.path.isfile(dotenv_file):
+    dotenv.load_dotenv(dotenv_file)
+
+API_KEY = os.environ['API_KEY']
 PAYLOAD = {'access_key': API_KEY}
 
 

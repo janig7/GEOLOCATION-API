@@ -8,13 +8,11 @@ from geolocation.models import Geolocation
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework import generics
-from rest_framework import viewsets
-from rest_framework.views import APIView
 from rest_framework.settings import api_settings
 
 
 class GeolocationBaseView(generics.GenericAPIView):
-    # permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated]
     serializer_class = GeolocationSerializer
     queryset = Geolocation.objects.all()
 
@@ -62,5 +60,3 @@ class GeolocationDetail(GeolocationBaseView):
 
     def delete(self, request, *args, **kwargs):
         return self.destroy(self.get(request, *args, **kwargs))
-
-
