@@ -23,7 +23,7 @@ class BlacklistTokenView(APIView):
 
     def post(self, request):
         try:
-            refresh_token = reqpuest.data['refresh-token']
+            refresh_token = request.data['refresh-token']
             token = RefreshToken(refresh_token)
             token.blacklist()
         except Exception as e:

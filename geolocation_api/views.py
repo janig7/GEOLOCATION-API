@@ -1,89 +1,66 @@
-from .serializers import GeolocationSerializer, CreateGeolocationByIPSerializer, CreateGeolocationByURNSerializer
+from .serializers import (
+    GeolocationSerializer,
+    CreateGeolocationByIPSerializer,
+    CreateGeolocationByURNSerializer,
+)
 from rest_framework.permissions import IsAuthenticated
 from geolocation.models import Geolocation
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework import generics
+from rest_framework import viewsets
+from rest_framework.views import APIView
+from rest_framework.settings import api_settings
 
 
-class GeolocationBaseView:
+class GeolocationBaseView(generics.GenericAPIView):
     # permission_classes = [IsAuthenticated]
     serializer_class = GeolocationSerializer
     queryset = Geolocation.objects.all()
 
-
-class GeolocationDetail(GeolocationBaseView, generics.RetrieveAPIView):
-    lookup_field = 'ip_address'
-
-    def get(self, request, *args, **kwargs):
-        print(kwargs)
+    def retrieve(self, request, *args, **kwargs):
         ip_serializer = CreateGeolocationByIPSerializer(data=kwargs)
-        if ip_serializer.is_valid():
-            return self.retrieve(request, *args, **kwargs)
-        print(ip_serializer.is_valid())
+        ip_serializer.is_valid(raise_exception=True)
+        instance = self.get_object()
+        serializer = self.get_serializer(instance)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
-        return Response(status=status.HTTP_400_BAD_REQUEST)
-
-    def post(self, request, *args, **kwargs):
+    def create(self, request, *args, **kwargs):
         create_serializer = CreateGeolocationByIPSerializer(data=kwargs)
-        if create_serializer.is_valid():
-            new_geolocation = create_serializer.save()
-            if new_geolocation:
-                return Response(f'Geolocation for ip address: {kwargs["ip_address"]} successfully added to database!', status=status.HTTP_201_CREATED)
+        create_serializer.is_valid(raise_exception=True)
+        create_serializer.save()
+        headers = self.get_success_headers(create_serializer.data)
+        return Response(
+            create_serializer.data, status=status.HTTP_201_CREATED, headers=headers
+        )
 
-        return Response(create_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    def destroy(self, request, *args, **kwargs):
+        delete_serializer = CreateGeolocationByIPSerializer(data=kwargs)
+        delete_serializer.is_valid(raise_exception=True)
+        instance = self.get_object()
+        self.perform_destroy(instance)
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    def perform_destroy(self, instance):
+        instance.delete()
+
+    def get_success_headers(self, data):
+        try:
+            return {'Location': str(data[api_settings.URL_FIELD_NAME])}
+        except (TypeError, KeyError):
+            return {}
 
 
-class GeolocationURLDetail(GeolocationBaseView, generics.RetrieveAPIView):
-    lookup_field = 'url_address'
+class GeolocationDetail(GeolocationBaseView):
+    lookup_field = 'ip_address'
 
     def get(self, request, *args, **kwargs):
-        request.data['url_address'] = kwargs.get('url_address')
-        ip_serializer = CreateGeolocationByURNSerializer(data=request.data)
-
-        if ip_serializer.is_valid():
-            return self.retrieve(request, *args, **kwargs)
-
-        return Response(self.serializer_class.errors, status=status.HTTP_404_NOT_FOUND)
-
-
-class CreateGeolocation(GeolocationBaseView, generics.CreateAPIView):
-    queryset = Geolocation.objects.values_list('ip_address')
-    lookup_field = 'ip_address'
+        return self.retrieve(request, *args, **kwargs)
 
     def post(self, request, *args, **kwargs):
-        create_serializer = CreateGeolocationByIPSerializer(data=kwargs)
-        if create_serializer.is_valid():
-            new_geolocation = create_serializer.save()
-            if new_geolocation:
-                return Response(f'Geolocation for ip address: {kwargs["ip_address"]} successfully added to database!', status=status.HTTP_201_CREATED)
-
-        return Response(create_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-
-class CreateGeolocationByURN(GeolocationBaseView, generics.CreateAPIView):
-    queryset = Geolocation.objects.values_list('url_address')
-    lookup_field = 'url_address'
-
-    def post(self, request, *args, **kwargs):
-        request.data['url_address'] = kwargs.get('url_address')
-        create_serializer = CreateGeolocationByURNSerializer(data=request.data)
-        if create_serializer.is_valid():
-            new_geolocation = create_serializer.save()
-            if new_geolocation:
-                return Response(status=status.HTTP_201_CREATED)
-
-        return Response(create_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-
-class DestroyGeolocation(GeolocationBaseView, generics.DestroyAPIView):
-    lookup_field = 'ip_address'
+        return self.create(request, *args, **kwargs)
 
     def delete(self, request, *args, **kwargs):
-        request.data['ip_address'] = kwargs.get('ip_address')
-        ip_serializer = GeolocationIPSerializer(data=request.data)
-        if ip_serializer.is_valid():
-            return self.destroy(request, *args, **kwargs)
+        return self.destroy(self.get(request, *args, **kwargs))
 
-        return Response(status=status.HTTP_400_BAD_REQUEST)
 

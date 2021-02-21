@@ -7,6 +7,6 @@ URN_REGEX = r'[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@
 
 def validate_urn(urn):
     if not re.match(URN_REGEX, urn):
-        raise ValidationError('polak to chuj i wozi gnój')
+        raise ValidationError({"url_address": "is not valid"})
 
 
